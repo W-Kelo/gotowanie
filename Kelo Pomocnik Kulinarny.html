@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelo Pomocnik Kulinarny</title>
+    
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --input-bg: #2c2c2c;
+            --primary: #bb86fc;
+            --secondary: #03dac6;
+            --accent: #cf6679;
+            --highlight: #ffb74d;
+            --text-main: #ffffff;
+            --text-muted: #b0b0b0;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- Header --- */
+        header {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        h1 { margin: 0; color: var(--primary); }
+        .view-section { display: none; width: 100%; max-width: 900px; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- UI Components --- */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        input, textarea {
+            background: var(--input-bg);
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        
+        input:focus, textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
+        
+        /* Layout Helpers */
+        .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .row input { flex: 1; }
+        .row .small-input { flex: 0 0 80px; }
+        
+        /* --- Dynamic Ingredient Checkboxes --- */
+        .ing-selector-container {
+            margin-top: 10px;
+            padding: 10px;
+            background: #252525;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+        
+        .ing-selector-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .ing-options-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .ing-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #333;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            user-select: none;
+            transition: 0.2s;
+        }
+        
+        .ing-checkbox-item:hover { border-color: var(--secondary); background: #383838; }
+        .ing-checkbox-item input { width: auto; margin: 0; cursor: pointer; }
+
+        .empty-ing-msg {
+            color: #666;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        /* --- Buttons --- */
+        button {
+            cursor: pointer;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary); color: #000; width: 100%; font-size: 1.1rem; padding: 15px; }
+        .btn-secondary { background-color: var(--secondary); color: #000; }
+        .btn-danger { background-color: var(--accent); color: #fff; }
+        .btn-outline { background: transparent; border: 1px solid #555; color: #ccc; }
+        .btn-small { padding: 5px 10px; font-size: 0.9rem; }
+        .action-bar { display: flex; gap: 10px; margin-top: 20px; }
+
+        /* --- Cooking Mode --- */
+        .step-display {
+            text-align: center;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .big-number { font-size: 4rem; color: var(--secondary); opacity: 0.3; }
+        .instruction-text { font-size: 2rem; margin: 20px 0; line-height: 1.4; }
+        
+        .step-ingredients-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-top: 1px solid #444;
+            width: 100%;
+        }
+        .step-ing-item {
+            display: inline-block;
+            background-color: rgba(255, 183, 77, 0.15);
+            color: var(--highlight);
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 1.1rem;
+            border: 1px solid var(--highlight);
+        }
+
+        .timer-box { 
+            font-size: 3rem; 
+            font-family: monospace; 
+            color: var(--primary); 
+            border: 2px solid var(--primary); 
+            padding: 10px 30px; 
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Mic Status */
+        .mic-badge {
+            background: #333; color: #888; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .mic-badge.active { background: var(--accent); color: white; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--secondary);
+            text-align: center;
+        }
+        .modal-list {
+            list-style: none; padding: 0; text-align: left; margin: 20px 0;
+            max-height: 60vh; overflow-y: auto;
+        }
+        .modal-list li {
+            padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>KELO <span style="font-size:0.6em; color:white;">Pomocnik Kulinarny</span></h1>
+        <div class="mic-badge" id="mic-status">
+            <span>●</span> <span id="mic-text">Mikrofon</span>
+        </div>
+    </header>
+
+    <!-- =========================================
+         VIEW 1: RECIPE EDITOR
+    ========================================== -->
+    <div id="view-editor" class="view-section active">
+        <div class="card">
+            <h2>Ustawienia przepisu</h2>
+            <div class="row">
+                <input type="text" id="edit-title" placeholder="Tytuł przepisu (np. pizza)">
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <label>Porcja bazowa:</label>
+                    <input type="number" id="edit-portions" value="2" min="1" class="small-input">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2>Składniki</h2>
+                <button class="btn-secondary btn-small" onclick="UI.addIngredientRow()">+ Dodaj składnik</button>
+            </div>
+            <div id="ingredients-container"></div>
+            <p style="font-size:0.8rem; color:#666;">Wskazówka: dodane tu składniki pojawią sie w instrukcjach.</p>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2>Instrukcje</h2>
+                <button class="btn-secondary btn-small" onclick="UI.addStepRow()">+ Dodaj krok</button>
+            </div>
+            <div id="steps-container"></div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-outline" onclick="DataMgr.downloadJSON()">Zapisz JSON</button>
+            <button class="btn-outline" onclick="document.getElementById('file-upload').click()">Załaduj JSON</button>
+            <input type="file" id="file-upload" class="file-input" style="display:none" accept=".json" onchange="DataMgr.loadJSON(this)">
+            <button class="btn-primary" onclick="App.goToPreview()">Następnie: podgląd i start</button>
+        </div>
+        <div style="margin-top:10px; text-align:center;">
+            <a href="#" onclick="DataMgr.loadDemo(); return false;" style="color:#666; font-size:0.8rem;">Załaduj przepis demonstracyjny</a>
+        </div>
+    </div>
+
+    <!-- =========================================
+         VIEW 2: PREVIEW & SCALE
+    ========================================== -->
+    <div id="view-preview" class="view-section">
+        <div class="card">
+            <h2 id="preview-title">Recipe Title</h2>
+            <div class="row" style="justify-content: center; margin-top:20px;">
+                <label style="margin-top:10px; margin-right:10px;">Gotowanie dla:</label>
+                <input type="number" id="cook-portions" value="2" min="1" style="width:70px; text-align:center;">
+                <span style="margin-top:10px; margin-left:5px;">Ludzie lub porcje</span>
+            </div>
+            <p id="math-hint" style="text-align:center; color:var(--secondary); font-size:0.9rem; margin-bottom:20px;"></p>
+            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+            <ul id="preview-ingredients" style="list-style:none; padding:0; display:grid; grid-template-columns: 1fr 1fr; gap:10px;"></ul>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-outline" onclick="App.switchView('view-editor')">Powrót do edycji</button>
+            <button class="btn-primary" onclick="App.startCooking()">Rozpocznij w trybie wolnych rąk</button>
+        </div>
+    </div>
+
+    <!-- =========================================
+         VIEW 3: ACTIVE COOKING
+    ========================================== -->
+    <div id="view-cooking" class="view-section">
+        <div class="card step-display">
+            <div class="big-number" id="step-num">#1</div>
+            
+            <div class="instruction-text" id="step-text">...</div>
+            
+            <!-- Step-specific Ingredients Display -->
+            <div class="step-ingredients-box" id="step-ing-wrapper" style="display:none;">
+                <div style="color:#888; font-size:0.8rem; margin-bottom:10px; text-transform:uppercase;">Składniki potrzebne w tym kroku:</div>
+                <div id="step-ing-list"></div>
+            </div>
+
+            <div class="timer-box" id="step-timer">00:00</div>
+            
+            <div style="margin-top:30px; color:#666; font-size:0.9rem;">
+                Powiedz: <strong>"READY"</strong>, albo <strong>"NEXT"</strong>, aby uruchomić następny krok. Powiedz <strong>"OPEN"</strong>, aby wyświetlić listę składników.
+            </div>
+            <div id="voice-log" style="color: var(--secondary); height: 20px; margin-top:5px; font-size:0.8rem;"></div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-danger" onclick="location.reload()">Zatrzymaj gotowanie</button>
+        </div>
+    </div>
+
+    <!-- =========================================
+         MODAL (Ingredients List)
+    ========================================== -->
+    <div id="ing-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Składniki</h2>
+            <p style="font-size:0.9rem; color:#888;">Skalowane do Twojej porcji</p>
+            <ul class="modal-list" id="modal-ing-list"></ul>
+            <button class="btn-outline" onclick="App.closeIngredientsModal()">Zamknij (powiedz "CLOSE")</button>
+        </div>
+    </div>
+
+    <!-- =========================================
+         JAVASCRIPT LOGIC
+    ========================================== -->
+    <script>
+        // --- DATA STATE ---
+        let currentRecipe = {
+            title: "",
+            basePortions: 2,
+            ingredients: [],
+            steps: []
+        };
+        let activeScaleRatio = 1;
+
+        // --- UI MANAGER ---
+        const UI = {
+            ingContainer: document.getElementById('ingredients-container'),
+            stepContainer: document.getElementById('steps-container'),
+
+            // Helper to get ingredient names
+            getCurrentIngredientNames() {
+                const names = [];
+                this.ingContainer.querySelectorAll('.row').forEach(row => {
+                    const val = row.querySelector('.ing-name').value.trim();
+                    if(val) names.push(val);
+                });
+                return names;
+            },
+
+            // Add Ingredient Field
+            addIngredientRow(data = { name: '', amount: '', unit: '' }) {
+                const div = document.createElement('div');
+                div.className = 'row ing-row';
+                div.innerHTML = `
+                    <input type="text" placeholder="Składnik (np. mąka)" class="ing-name" value="${data.name}" oninput="UI.refreshAllStepIngredients()">
+                    <input type="number" placeholder="ilość" class="ing-amount small-input" value="${data.amount}">
+                    <input type="text" placeholder="Jednostka" class="ing-unit small-input" value="${data.unit}">
+                    <button class="btn-danger btn-small" onclick="UI.removeIngredientRow(this)">×</button>
+                `;
+                this.ingContainer.appendChild(div);
+                
+                // Refresh all steps instantly to show new option
+                this.refreshAllStepIngredients();
+            },
+
+            removeIngredientRow(btn) {
+                btn.parentElement.remove();
+                this.refreshAllStepIngredients();
+            },
+
+            // Add Step Field
+            addStepRow(data = { text: '', timer: '', activeIngs: [] }) {
+                const div = document.createElement('div');
+                div.className = 'form-group card step-row'; // Nested card
+                div.style.padding = "15px";
+                div.style.background = "#252525";
+                
+                // We initially render an empty container for checkboxes.
+                // It gets populated immediately by refreshAllStepIngredients below.
+                
+                div.innerHTML = `
+                    <div style="display:flex; gap:10px; margin-bottom:5px;">
+                        <label style="color:var(--primary)">Instruction</label>
+                        <button class="btn-danger btn-small" style="margin-left:auto;" onclick="this.parentElement.parentElement.remove()">Usuń</button>
+                    </div>
+                    <textarea rows="2" class="step-text" placeholder="Opisz, co należy zrobić...">${data.text}</textarea>
+                    
+                    <div class="ing-selector-container">
+                        <label class="ing-selector-label">Opcjonalnie: wybierz składniki używane w tym kroku.</label>
+                        <div class="ing-options-grid" data-preselect='${JSON.stringify(data.activeIngs || [])}'></div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+                        <label style="margin:0;">Czas (sekundy):</label>
+                        <input type="number" class="step-timer small-input" placeholder="Opcjonalnie: wpisz ile sekund ma trwać krok." value="${data.timer > 0 ? data.timer : ''}">
+                    </div>
+                `;
+                this.stepContainer.appendChild(div);
+                
+                // Populate the checkboxes based on current ingredients
+                this.refreshAllStepIngredients();
+            },
+
+            // CORE FIX: This function syncs ingredients to step checkboxes
+            refreshAllStepIngredients() {
+                const names = this.getCurrentIngredientNames();
+                const stepRows = this.stepContainer.querySelectorAll('.step-row');
+
+                stepRows.forEach(row => {
+                    const grid = row.querySelector('.ing-options-grid');
+                    
+                    // 1. Capture currently checked items to preserve state
+                    const checkedNow = [];
+                    grid.querySelectorAll('input:checked').forEach(cb => checkedNow.push(cb.value));
+                    
+                    // 2. Also check if there's pre-saved data (from loading JSON)
+                    const preselectData = grid.dataset.preselect ? JSON.parse(grid.dataset.preselect) : [];
+                    grid.removeAttribute('data-preselect'); // clear after first use
+
+                    // Merge checks
+                    const toCheck = [...new Set([...checkedNow, ...preselectData])];
+
+                    // 3. Clear and Rebuild
+                    grid.innerHTML = '';
+                    
+                    if(names.length === 0) {
+                        grid.innerHTML = '<span class="empty-ing-msg">Na razie nie ma dostępnych skłądników. Dodaj je powyżej.</span>';
+                        return;
+                    }
+
+                    names.forEach(name => {
+                        const isChecked = toCheck.includes(name) ? 'checked' : '';
+                        
+                        const label = document.createElement('label');
+                        label.className = 'ing-checkbox-item';
+                        label.innerHTML = `
+                            <input type="checkbox" value="${name}" ${isChecked}>
+                            ${name}
+                        `;
+                        grid.appendChild(label);
+                    });
+                });
+            },
+
+            populateEditor(recipe) {
+                this.ingContainer.innerHTML = '';
+                this.stepContainer.innerHTML = '';
+                document.getElementById('edit-title').value = recipe.title || "";
+                document.getElementById('edit-portions').value = recipe.basePortions || 2;
+                
+                // Add Ingredients first
+                recipe.ingredients.forEach(ing => this.addIngredientRow(ing));
+                
+                // Add Steps (they will auto-populate checkboxes because addIngredientRow ran first)
+                recipe.steps.forEach(step => this.addStepRow(step));
+            }
+        };
+
+        // --- DATA MANAGER ---
+        const DataMgr = {
+            scrapeFromUI() {
+                const r = {
+                    title: document.getElementById('edit-title').value || "My Recipe",
+                    basePortions: parseFloat(document.getElementById('edit-portions').value) || 1,
+                    ingredients: [],
+                    steps: []
+                };
+
+                // Scrape Ingredients
+                UI.ingContainer.querySelectorAll('.ing-row').forEach(row => {
+                    const name = row.querySelector('.ing-name').value.trim();
+                    const amount = parseFloat(row.querySelector('.ing-amount').value);
+                    const unit = row.querySelector('.ing-unit').value.trim();
+                    if(name) r.ingredients.push({ name, amount: amount || 0, unit });
+                });
+
+                // Scrape Steps
+                UI.stepContainer.querySelectorAll('.step-row').forEach(row => {
+                    const text = row.querySelector('.step-text').value;
+                    const timer = parseInt(row.querySelector('.step-timer').value) || 0;
+                    
+                    const selectedIngs = [];
+                    row.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                        selectedIngs.push(cb.value);
+                    });
+
+                    if(text) r.steps.push({ text, timer, activeIngs: selectedIngs });
+                });
+                return r;
+            },
+
+            downloadJSON() {
+                const data = this.scrapeFromUI();
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (data.title.replace(/\s+/g, '_').toLowerCase()) + ".json";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            },
+
+            loadJSON(input) {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        UI.populateEditor(data);
+                    } catch (err) { alert("Invalid JSON file"); }
+                };
+                reader.readAsText(file);
+            },
+
+            loadDemo() {
+                const demo = {
+                    title: "Carbonara",
+                    basePortions: 2,
+                    ingredients: [
+                        { name: "Spaghetti", amount: 200, unit: "g" },
+                        { name: "Guanciale", amount: 100, unit: "g" },
+                        { name: "Eggs", amount: 3, unit: "pcs" },
+                        { name: "Pecorino", amount: 50, unit: "g" },
+                        { name: "Black Pepper", amount: 5, unit: "g" }
+                    ],
+                    steps: [
+                        { text: "Boil water in a large pot. Add pasta.", timer: 600, activeIngs: ["Spaghetti"] },
+                        { text: "In a pan, fry Guanciale until crisp.", timer: 300, activeIngs: ["Guanciale"] },
+                        { text: "Whisk eggs, cheese, and pepper in a bowl.", timer: 0, activeIngs: ["Eggs", "Pecorino", "Black Pepper"] },
+                        { text: "Mix pasta with fat and egg mixture off heat.", timer: 0, activeIngs: [] }
+                    ]
+                };
+                UI.populateEditor(demo);
+            }
+        };
+
+        // --- APP CONTROLLER ---
+        const App = {
+            currentStepIdx: -1,
+            timerInterval: null,
+            speechRec: null,
+            
+            init() {
+                // Initialize with one empty row of each
+                UI.addIngredientRow();
+                UI.addStepRow();
+                
+                document.getElementById('cook-portions').addEventListener('input', this.renderPreview.bind(this));
+            },
+
+            switchView(viewId) {
+                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+                document.getElementById(viewId).classList.add('active');
+            },
+
+            goToPreview() {
+                currentRecipe = DataMgr.scrapeFromUI();
+                if(currentRecipe.steps.length === 0) { alert("Please add at least one step."); return; }
+                
+                document.getElementById('preview-title').innerText = currentRecipe.title;
+                document.getElementById('cook-portions').value = currentRecipe.basePortions;
+                this.renderPreview();
+                this.switchView('view-preview');
+            },
+
+            renderPreview() {
+                const inputPortions = parseFloat(document.getElementById('cook-portions').value) || 1;
+                activeScaleRatio = inputPortions / currentRecipe.basePortions;
+
+                const list = document.getElementById('preview-ingredients');
+                list.innerHTML = '';
+                
+                currentRecipe.ingredients.forEach(ing => {
+                    const scaled = (ing.amount * activeScaleRatio);
+                    const val = Number.isInteger(scaled) ? scaled : scaled.toFixed(1);
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${ing.name}</span> <strong style="color:var(--secondary); float:right;">${val > 0 ? val : ''} ${ing.unit}</strong>`;
+                    li.style.background = "#2a2a2a"; li.style.padding="10px";
+                    list.appendChild(li);
+                });
+
+                document.getElementById('math-hint').innerText = 
+                    activeScaleRatio === 1 ? "Porcja bazowa" : `Skala porcji: ${activeScaleRatio.toFixed(2)}x`;
+            },
+
+            // --- COOKING LOGIC ---
+            startCooking() {
+                AudioEngine.init();
+                this.currentStepIdx = -1;
+                this.switchView('view-cooking');
+                this.setupVoice();
+                this.nextStep();
+            },
+
+            nextStep() {
+                clearInterval(this.timerInterval);
+                window.speechSynthesis.cancel();
+                
+                this.currentStepIdx++;
+                if(this.currentStepIdx >= currentRecipe.steps.length) {
+                    this.speak("Cooking complete. Enjoy!");
+                    document.getElementById('step-text').innerText = "Dobrego apetytu!";
+                    document.getElementById('step-num').innerText = "KONIEC";
+                    document.getElementById('step-ing-wrapper').style.display = 'none';
+                    document.getElementById('step-timer').style.display = 'none';
+                    return;
+                }
+
+                const step = currentRecipe.steps[this.currentStepIdx];
+                
+                // Render Text
+                document.getElementById('step-num').innerText = `#${this.currentStepIdx + 1}`;
+                document.getElementById('step-text').innerText = step.text;
+                
+                // Render Step Ingredients (Color Coded, Not Read)
+                const ingWrapper = document.getElementById('step-ing-wrapper');
+                const ingListEl = document.getElementById('step-ing-list');
+                ingListEl.innerHTML = '';
+
+                if (step.activeIngs && step.activeIngs.length > 0) {
+                    ingWrapper.style.display = 'block';
+                    step.activeIngs.forEach(ingName => {
+                        // Match with recipe ingredients to get unit/amount
+                        const original = currentRecipe.ingredients.find(i => i.name === ingName);
+                        if(original) {
+                            const scaled = (original.amount * activeScaleRatio);
+                            const val = Number.isInteger(scaled) ? scaled : scaled.toFixed(1);
+                            
+                            const span = document.createElement('span');
+                            span.className = 'step-ing-item';
+                            // Logic: If amount is 0/empty, just show name
+                            span.innerText = (val > 0) 
+                                ? `${val} ${original.unit} ${original.name}`
+                                : original.name;
+                            ingListEl.appendChild(span);
+                        }
+                    });
+                } else {
+                    ingWrapper.style.display = 'none';
+                }
+
+                // Render Timer
+                const timerEl = document.getElementById('step-timer');
+                if(step.timer > 0) {
+                    timerEl.style.display = 'block';
+                    timerEl.innerText = this.fmtTime(step.timer);
+                } else {
+                    timerEl.style.display = 'none';
+                }
+
+                // Audio
+                AudioEngine.playPing();
+                setTimeout(() => {
+                    this.speak(`Krok ${this.currentStepIdx + 1}. ${step.text}`);
+                    if(step.timer > 0) {
+                         // Read timer after instruction
+                         setTimeout(() => {
+                             this.speak(`Starting timer for ${step.timer} seconds.`);
+                             this.runTimer(step.timer);
+                         }, Math.min(step.text.length * 50, 3000));
+                    }
+                }, 500);
+            },
+
+            runTimer(s) {
+                let remaining = s;
+                const display = document.getElementById('step-timer');
+                this.timerInterval = setInterval(() => {
+                    remaining--;
+                    display.innerText = this.fmtTime(remaining);
+                    if(remaining <= 0) {
+                        clearInterval(this.timerInterval);
+                        AudioEngine.playAlarm();
+                        this.speak("Timer done. Say Ready.");
+                        display.style.color = 'var(--accent)';
+                    }
+                }, 1000);
+            },
+
+            // --- MODAL LOGIC (OPEN/CLOSE) ---
+            openIngredientsModal() {
+                const modal = document.getElementById('ing-modal');
+                const list = document.getElementById('modal-ing-list');
+                list.innerHTML = '';
+
+                let spokenText = "Here are the ingredients. ";
+
+                currentRecipe.ingredients.forEach(ing => {
+                    const scaled = (ing.amount * activeScaleRatio);
+                    const val = Number.isInteger(scaled) ? scaled : scaled.toFixed(1);
+                    const txt = (val > 0) ? `${val} ${ing.unit} of ${ing.name}` : ing.name;
+                    
+                    spokenText += txt + ". ";
+                    
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${ing.name}</span> <strong>${val > 0 ? val : ''} ${ing.unit}</strong>`;
+                    list.appendChild(li);
+                });
+
+                modal.style.display = 'flex';
+                this.speak(spokenText);
+            },
+
+            closeIngredientsModal() {
+                document.getElementById('ing-modal').style.display = 'none';
+                window.speechSynthesis.cancel();
+            },
+
+            // --- VOICE & AUDIO ---
+            speak(text) {
+                const utt = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utt);
+            },
+
+            fmtTime(s) {
+                const m = Math.floor(s/60);
+                const sec = s%60;
+                return `${m}:${sec<10?'0'+sec:sec}`;
+            },
+
+            setupVoice() {
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if(!SR) { document.getElementById('mic-text').innerText = "Not Supported"; return; }
+
+                this.speechRec = new SR();
+                this.speechRec.continuous = true;
+                this.speechRec.lang = 'en-US';
+
+                this.speechRec.onstart = () => {
+                    document.getElementById('mic-status').classList.add('active');
+                    document.getElementById('mic-text').innerText = "Słuchanie";
+                };
+                this.speechRec.onend = () => {
+                   if(this.currentStepIdx < currentRecipe.steps.length) try { this.speechRec.start(); } catch(e){}
+                };
+
+                this.speechRec.onresult = (e) => {
+                    const cmd = e.results[e.results.length-1][0].transcript.trim().toUpperCase();
+                    document.getElementById('voice-log').innerText = `Usłyszałem: "${cmd}"`;
+
+                    if(cmd.includes('READY') || cmd.includes('NEXT') || cmd.includes('GOTOWE')) {
+                        // Prevent next step if modal is open
+                        if(document.getElementById('ing-modal').style.display === 'flex') return;
+                        this.nextStep();
+                    }
+                    else if(cmd.includes('OPEN') || cmd.includes('INGREDIENTS')) {
+                        this.openIngredientsModal();
+                    }
+                    else if(cmd.includes('CLOSE')) {
+                        this.closeIngredientsModal();
+                    }
+                };
+                try { this.speechRec.start(); } catch(e){}
+            }
+        };
+
+        const AudioEngine = {
+            ctx: null,
+            init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            tone(f, t, d) {
+                if(!this.ctx) return;
+                const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+                o.type=t; o.frequency.value=f; o.connect(g); g.connect(this.ctx.destination);
+                o.start(); g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+d); o.stop(this.ctx.currentTime+d);
+            },
+            playPing() { this.tone(600, 'sine', 0.6); },
+            playAlarm() { for(let i=0; i<3; i++) setTimeout(()=>this.tone(800,'square',0.2), i*300); }
+        };
+
+        App.init();
+    </script>
+</body>
+</html>
